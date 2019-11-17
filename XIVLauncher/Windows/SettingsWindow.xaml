@@ -34,10 +34,12 @@
                     </TextBlock>
                     <components:FolderEntry x:Uid="GamePathEntry" x:Name="GamePathEntry" Text="{Binding GamePath, UpdateSourceTrigger=PropertyChanged}" Description="Select a folder" Width="400" VerticalAlignment="Center" HorizontalAlignment="Left" Foreground="{DynamicResource MaterialDesignBody}" Margin="0,5,0,0"/>
                     <CheckBox x:Uid="SteamIntegrationCheckBox" Foreground="{DynamicResource MaterialDesignBody}" x:Name="SteamIntegrationCheckBox" Margin="0,15,0,0">Enable Steam integration</CheckBox>
+                    <!--
+                    <CheckBox x:Uid="CharacterSyncCheckBox" Foreground="{DynamicResource MaterialDesignBody}" x:Name="CharacterSyncCheckBox" Margin="200,-19,0,0">Synchronize Character Data</CheckBox>
+                    -->
                     <Label x:Uid="Label_1" Margin="0,10,0,0">Additional launch arguments</Label>
                     <TextBox x:Uid="LaunchArgsTextBox" Width="400" VerticalAlignment="Center" HorizontalAlignment="Left" Foreground="{DynamicResource MaterialDesignBody}" Margin="0,5,0,0" x:Name="LaunchArgsTextBox"/>
                     <Button x:Uid="Button_1" HorizontalAlignment="Left" Click="RunIntegrityCheck_OnClick" IsEnabled="{Binding IsRunIntegrityCheckPossible}" ToolTip="Run integrity check on game files." Margin="10,20,0,0">Run integrity check</Button>
-                    <CheckBox x:Uid="CharacterSyncCheckBox" Foreground="{DynamicResource MaterialDesignBody}" x:Name="CharacterSyncCheckBox" Margin="200,-245,0,0">Synchronize Character Data</CheckBox>
                 </StackPanel>
             </TabItem>
             <TabItem x:Uid="TabItem_2" Header="DirectX">
@@ -118,7 +120,7 @@
                             </TextBlock>
                             <CheckBox x:Uid="EnableHooksCheckBox" x:Name="EnableHooksCheckBox" Content="Enable in-game features"
                                       HorizontalAlignment="Left" Margin="0,0,0,0"
-                                      Foreground="{DynamicResource MaterialDesignBody}" />
+                                      Foreground="{DynamicResource MaterialDesignBody}"/>
 
                             <Label x:Uid="Label_2" Foreground="DarkGray" Margin="0,10,0,5">
                                 When enabled, type "/xlhelp" in-game to see other available commands like fate notifications.
@@ -126,13 +128,7 @@
 
                             <StackPanel x:Uid="StackPanel_6" IsEnabled="{Binding ElementName=EnableHooksCheckBox, Path=IsChecked}">
                                 <Separator x:Uid="Separator_1"></Separator>
-                                <Label x:Uid="Label_2" Foreground="DarkGray" Margin="0,5,0,0" FontStyle="Italic" HorizontalAlignment="Center" FontSize="13">
-                                    Combat settings
-                                </Label>
-
-                                <Button x:Name="ManageCustomCombosButton" Click="ManageCustomCombosButton_OnClick" Margin="0,6,0,5">Manage Custom Combos</Button>
-
-                                <Separator></Separator>
+                                
                                 <Label x:Uid="Label_2" Foreground="DarkGray" Margin="0,5,0,0" FontStyle="Italic" HorizontalAlignment="Center" FontSize="13">
                                     Chat settings
                                 </Label>
@@ -181,7 +177,11 @@
                                 <Button x:Uid="Button_3" Margin="0,0,0,10" HorizontalAlignment="Center" VerticalAlignment="Bottom" Click="AddChannelConfig_OnClick" ToolTip="Add a new discord chat channel.">Add chat channel</Button>
                                 <Button x:Uid="Button_4" Margin="0,7,0,10" HorizontalAlignment="Center" VerticalAlignment="Bottom" Click="SetDutyFinderNotificationChannel_OnClick" ToolTip="Set the Duty Finder notification channel.">Set Duty Finder notification channel</Button>
                                 <Button x:Uid="Button_5" Margin="0,0,0,10" HorizontalAlignment="Center" VerticalAlignment="Bottom" Click="SetFateNotificationChannel_OnClick" ToolTip="Set the Fate notification channel.">Set Fate notification channel</Button>
-                                <Button x:Uid="Button_6" Margin="0,0,0,15" HorizontalAlignment="Center" VerticalAlignment="Bottom" Click="SetRetainerNotificationChannel_OnClick" ToolTip="Set the retainer sale channel.">Set retainer sale channel</Button>
+                                <Button x:Uid="Button_6" Margin="0,0,0,20" HorizontalAlignment="Center" VerticalAlignment="Bottom" Click="SetRetainerNotificationChannel_OnClick" ToolTip="Set the retainer sale channel.">Set retainer sale channel</Button>
+
+                                <CheckBox x:Uid="DisableEmbedsCheckBox" x:Name="DisableEmbedsCheckBox" Content="Disable rich embeds (send smaller messages to Discord)"
+                                          HorizontalAlignment="Left" Margin="0,0,0,20"
+                                          Foreground="{DynamicResource MaterialDesignBody}"/>
 
                                 <CheckBox x:Uid="CheckForDuplicateMessagesCheckBox" x:Name="CheckForDuplicateMessagesCheckBox"
                                           HorizontalAlignment="Left" Margin="0,0,0,5" Foreground="{DynamicResource MaterialDesignBody}">
@@ -189,6 +189,8 @@
                                         Check for recently sent messages to avoid duplicates.
                                         <LineBreak/>
                                         This allows for multiple users to use the same channel as a chat log.
+                                        <LineBreak/>
+                                        Please set an appropriate delay below(e.g. 1000).
                                     </TextBlock>
                                 </CheckBox>
 
@@ -200,6 +202,31 @@
                                          VerticalAlignment="Center" HorizontalAlignment="Left"
                                          Foreground="{DynamicResource MaterialDesignBody}" materialDesign:HintAssist.Hint="Chat Delay">
                                 </TextBox>
+
+                                <Separator></Separator>
+
+                                <Label x:Uid="Label_2" Foreground="DarkGray" Margin="0,5,0,0" FontStyle="Italic" HorizontalAlignment="Center" FontSize="13">
+                                    Combat settings
+                                </Label>
+
+                                <!--
+                                <Button x:Name="ManageCustomCombosButton" Click="ManageCustomCombosButton_OnClick" Margin="0,6,0,5">Manage Custom Combos</Button>
+                                -->
+
+                                <CheckBox x:Uid="CheckForDuplicateMessagesCheckBox" x:Name="EnableAstCardStuff"
+                                          HorizontalAlignment="Left" Margin="0,0,0,5" Foreground="{DynamicResource MaterialDesignBody}">
+                                    <StackPanel Orientation="Horizontal">
+                                        <Label Foreground="{DynamicResource MaterialDesignBody}" FontFamily="/Resources/FFXIVAppIcons.ttf #FFXIVAppIcons" Content="&#xF033;" FontSize="30"/>
+                                        <StackPanel Orientation="Vertical">
+                                            <TextBlock x:Uid="TextBlock_7" Text="Play on Draw (Astrologian)" Margin="5,0,0,0" Foreground="{DynamicResource MaterialDesignBody}" FontSize="14"></TextBlock>
+                                            <TextBlock x:Uid="TextBlock_8" Margin="5,5,0,0" Foreground="{DynamicResource MaterialDesignBody}">
+                                                Draw and play Astrologian cards on the same button.
+                                                <LineBreak/>
+                                                (Restores Heavensward behaviour)
+                                            </TextBlock>
+                                        </StackPanel>
+                                    </StackPanel>
+                                </CheckBox>
 
                                 <Separator x:Uid="Separator_2"/>
                                 <Label x:Uid="Label_6" Foreground="DarkGray" Margin="0,5,0,5">
@@ -225,7 +252,7 @@
                                        Foreground="{DynamicResource MaterialDesignBody}">
                                 Made by goat.
                                 <LineBreak x:Uid="LineBreak_6"/> 
-                                Special thanks to Mino, LeonBlade, Roy and the angry paissa artist!
+                                Special thanks to Mino, sky, LeonBlade, Roy and the angry paissa artist!
                                 <LineBreak x:Uid="LineBreak_4" />
                                 <LineBreak x:Uid="LineBreak_5" />
                                 Any issues or requests? Join the discord or create an issue on GitHub!

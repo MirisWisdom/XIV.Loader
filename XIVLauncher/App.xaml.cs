@@ -8,6 +8,7 @@ using Serilog;
 using Serilog.Events;
 using XIVLauncher.Addon;
 using XIVLauncher.Addon.Implementations;
+using XIVLauncher.Dalamud;
 using XIVLauncher.Game;
 using XIVLauncher.Windows;
 
@@ -31,6 +32,7 @@ namespace XIVLauncher
                     a.File(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
                         "XIVLauncher", "output.log")))
 #if DEBUG
+                .WriteTo.Debug()
                 .MinimumLevel.Verbose()
 #else
                 .MinimumLevel.Information()
@@ -93,6 +95,12 @@ namespace XIVLauncher
                 MessageBox.Show($"Successfully hashed {result.Hashes.Count} files.");
                 Environment.Exit(0);
                 return;
+            }
+
+            if (e.Args.Length > 0 && e.Args[0] == "--dalamudStg")
+            {
+                Console.Beep();
+                DalamudLauncher.UseDalamudStaging = true;
             }
 
             // Check if the accountName parameter is provided, if yes, pass it to MainWindow

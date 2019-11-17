@@ -10,6 +10,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using Dalamud.Discord;
+using Serilog;
 using XIVLauncher.Addon;
 using XIVLauncher.Cache;
 using XIVLauncher.Dalamud;
@@ -67,7 +68,7 @@ namespace XIVLauncher.Windows
             DiscordBotTokenTextBox.Text = featureConfig.Token;
             CheckForDuplicateMessagesCheckBox.IsChecked = featureConfig.CheckForDuplicateMessages;
             ChatDelayTextBox.Text = featureConfig.ChatDelayMs.ToString();
-
+            DisableEmbedsCheckBox.IsChecked = featureConfig.DisableEmbeds;
 
             RmtAdFilterCheckBox.IsChecked = Settings.RmtFilterEnabled;
             EnableHooksCheckBox.IsChecked = Settings.IsInGameAddonEnabled();
@@ -76,14 +77,19 @@ namespace XIVLauncher.Windows
 
             MbUploadOptOutCheckBox.IsChecked = Settings.OptOutMbUpload;
 
-            CharacterSyncCheckBox.IsChecked = Settings.CharacterSyncEnabled;
+            //CharacterSyncCheckBox.IsChecked = Settings.CharacterSyncEnabled;
 
             LaunchArgsTextBox.Text = Settings.AdditionalLaunchArgs;
 
             VersionLabel.Text += " - v" + Util.GetAssemblyVersion() + " - " + Util.GetGitHash() + " - " + Environment.Version;
 
             // Gotta do this after setup so we don't fire events yet
-            CharacterSyncCheckBox.Checked += CharacterSyncCheckBox_Checked;
+            //CharacterSyncCheckBox.Checked += CharacterSyncCheckBox_Checked;
+
+            EnableAstCardStuff.IsChecked =
+                Settings.ComboPresets.HasFlag(CustomComboPreset.AstrologianCardsOnDrawFeature);
+
+            EnableHooksCheckBox.Checked += EnableHooksCheckBox_OnChecked;
         }
 
         private void SettingsWindow_OnClosing(object sender, CancelEventArgs e)
@@ -103,15 +109,21 @@ namespace XIVLauncher.Windows
             featureConfig.CheckForDuplicateMessages = CheckForDuplicateMessagesCheckBox.IsChecked == true;
             if (int.TryParse(ChatDelayTextBox.Text, out var parsedDelay))
                 featureConfig.ChatDelayMs = parsedDelay;
+            featureConfig.DisableEmbeds = DisableEmbedsCheckBox.IsChecked == true;
             Settings.DiscordFeatureConfig = featureConfig;
 
             Settings.SteamIntegrationEnabled = SteamIntegrationCheckBox.IsChecked == true;
 
             Settings.OptOutMbUpload = MbUploadOptOutCheckBox.IsChecked == true;
 
-            Settings.CharacterSyncEnabled = CharacterSyncCheckBox.IsChecked == true;
+            //Settings.CharacterSyncEnabled = CharacterSyncCheckBox.IsChecked == true;
 
             Settings.AdditionalLaunchArgs = LaunchArgsTextBox.Text;
+
+            if (EnableAstCardStuff.IsChecked == true)
+            {
+                Settings.ComboPresets |= CustomComboPreset.AstrologianCardsOnDrawFeature;
+            }
 
             Settings.Save();
         }
@@ -188,7 +200,7 @@ namespace XIVLauncher.Windows
                         if (x.Addon is RichPresenceAddon)
                             return true;
 
-                        if (x.Addon is HooksAddon)
+                        if (x.Addon is DalamudLauncher)
                             return true;
 
                         return x.Addon is GenericAddon thisGenericAddon && thisGenericAddon.Path != genericAddon.Path;
@@ -222,7 +234,7 @@ namespace XIVLauncher.Windows
                     if (x.Addon is RichPresenceAddon)
                         return true;
 
-                    if (x.Addon is HooksAddon)
+                    if (x.Addon is DalamudLauncher)
                         return true;
 
                     return x.Addon is GenericAddon thisGenericAddon && thisGenericAddon.Path != genericAddon.Path;
@@ -419,7 +431,7 @@ namespace XIVLauncher.Windows
 
         private void CharacterSyncCheckBox_Checked(object sender, RoutedEventArgs e)
         {
-            MessageBox.Show("ATTENTION!!!\n\nThis feature synchronizes hotbars, HUD and settings of the character you last logged in with to your other characters after closing the game.\nWhen enabling this feature, make sure that you log in with your main character on the first launch of your game.\nClose it immediately after to start syncing files from this character to your other characters.\n\nIf you use another character first, your main character will be overwritten.", "Danger Zone", MessageBoxButton.OK, MessageBoxImage.Warning);
+            MessageBox.Show("ATTENTION!!!\n\n\"Synchronize Character Data\" synchronizes hotbars, HUD and settings of the character you last logged in with to your other characters after closing the game.\nWhen enabling this feature, make sure that you log in with your main character on the first launch of your game.\nClose it immediately after to start syncing files from this character to your other characters.\n\nIf you use another character first, your main character will be overwritten.", "Danger Zone", MessageBoxButton.OK, MessageBoxImage.Warning);
         }
 
         private void ManageCustomCombosButton_OnClick(object sender, RoutedEventArgs e)
@@ -428,6 +440,24 @@ namespace XIVLauncher.Windows
             comboWindow.ShowDialog();
 
             Settings.ComboPresets = comboWindow.EnabledPresets;
+        }
+
+        private void EnableHooksCheckBox_OnChecked(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                if (!DalamudLauncher.CanRunDalamud())
+                    MessageBox.Show(
+                        $"The XIVLauncher in-game addon was not yet updated for your current FFXIV version.\nThis is common after patches, so please be patient or ask on the discord for a status update!",
+                        "XIVLauncher", MessageBoxButton.OK, MessageBoxImage.Asterisk);
+            }
+            catch(Exception exc)
+            {
+                MessageBox.Show(
+                    "Could not contact the server to get the current compatible FFXIV version for the in-game addon. This might mean that your .NET installation is too old.\nPlease check the discord for more information");
+
+                Log.Error(exc, "Couldn't check dalamud compatibility.");
+            }
         }
     }
 }
