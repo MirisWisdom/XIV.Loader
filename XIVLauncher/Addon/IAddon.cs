@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using XIVLauncher.Settings;
 
 namespace XIVLauncher.Addon
 {
@@ -6,6 +7,6 @@ namespace XIVLauncher.Addon
     {
         string Name { get; }
 
-        void Setup(Process gameProcess);
+        void Setup(Process gameProcess, ILauncherSettingsV3 setting);
     }
 }

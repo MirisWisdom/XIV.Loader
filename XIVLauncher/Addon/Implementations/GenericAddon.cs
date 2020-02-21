@@ -2,6 +2,7 @@ using System;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Linq;
+using XIVLauncher.Settings;
 
 namespace XIVLauncher.Addon
 {
@@ -10,7 +11,7 @@ namespace XIVLauncher.Addon
         private Process _addonProcess;
         private Process _gameProcess;
         
-        public void Setup(Process gameProcess)
+        void IAddon.Setup(Process gameProcess, ILauncherSettingsV3 setting)
         {
             _gameProcess = gameProcess;
         }

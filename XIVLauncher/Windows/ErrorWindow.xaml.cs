@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.Media;
 using System.Windows;
 using System.Windows.Documents;
+using XIVLauncher.Settings;
 
 namespace XIVLauncher.Windows
 {
@@ -11,7 +12,7 @@ namespace XIVLauncher.Windows
     /// </summary>
     public partial class ErrorWindow : Window
     {
-        public ErrorWindow(Exception exc, string message, string context)
+        public ErrorWindow(Exception exc, string message, string context, ILauncherSettingsV3 setting = null)
         {
             InitializeComponent();
 
@@ -21,13 +22,18 @@ namespace XIVLauncher.Windows
             ExceptionTextBox.AppendText("\nContext: " + context);
             ExceptionTextBox.AppendText("\n" + Environment.OSVersion);
             ExceptionTextBox.AppendText("\n" + Environment.Is64BitProcess);
-            ExceptionTextBox.AppendText("\n" + Settings.IsDX11());
-            ExceptionTextBox.AppendText("\n" + Settings.IsInGameAddonEnabled());
-            ExceptionTextBox.AppendText("\n" + Settings.IsAutologin());
-            ExceptionTextBox.AppendText("\n" + Settings.UniqueIdCacheEnabled);
-            ExceptionTextBox.AppendText("\n" + Settings.GetLanguage());
 
-            #if DEBUG
+            if (setting != null)
+            {
+                ExceptionTextBox.AppendText("\n" + setting.IsDx11);
+                ExceptionTextBox.AppendText("\n" + setting.InGameAddonEnabled);
+                ExceptionTextBox.AppendText("\n" + setting.AutologinEnabled);
+                ExceptionTextBox.AppendText("\n" + setting.AutologinEnabled);
+                ExceptionTextBox.AppendText("\n" + setting.Language);
+                ExceptionTextBox.AppendText("\n" + setting.GamePath);
+            }
+
+#if DEBUG
             ExceptionTextBox.AppendText("\nDebugging");
             #endif
 

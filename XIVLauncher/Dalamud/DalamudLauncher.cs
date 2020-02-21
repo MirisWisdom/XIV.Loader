@@ -11,6 +11,7 @@ using Dalamud.Discord;
 using Microsoft.WindowsAPICodePack.Shell.Interop;
 using Newtonsoft.Json;
 using XIVLauncher.Dalamud;
+using XIVLauncher.Dalamud.PluginUpdate;
 using XIVLauncher.Game;
 
 namespace XIVLauncher.Dalamud
@@ -45,12 +46,8 @@ namespace XIVLauncher.Dalamud
             public string SupportedGameVer { get; set; }
         }
 
-        public void Run()
+        public void Run(DirectoryInfo gamePath, ClientLanguage language)
         {
-            // Launcher Hooks don't work on DX9 and probably never will
-            if (!Settings.IsDX11())
-                return;
-
             var addonDirectory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "XIVLauncher", "addon", "Hooks");
             var addonExe = Path.Combine(addonDirectory, "Dalamud.Injector.exe");
 
@@ -63,7 +60,11 @@ namespace XIVLauncher.Dalamud
 
             using (var client = new WebClient())
             {
+                // GitHub requires TLS 1.2, we need to hardcode this for Windows 7
+                ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
+
                 var versionInfoJson = client.DownloadString(Remote + "version");
+
                 var remoteVersionInfo = JsonConvert.DeserializeObject<HooksVersionInfo>(versionInfoJson);
 
                 if (!File.Exists(addonExe))
@@ -82,7 +83,7 @@ namespace XIVLauncher.Dalamud
                         Download(addonDirectory, defaultPluginPath);
                 }
 
-                if (XivGame.GetLocalGameVer() != remoteVersionInfo.SupportedGameVer)
+                if (XivGame.GetLocalGameVer(gamePath) != remoteVersionInfo.SupportedGameVer)
                     return;
 
                 if (!File.Exists(Path.Combine(addonDirectory, "EasyHook.dll")))
@@ -99,7 +100,7 @@ namespace XIVLauncher.Dalamud
 
                 var startInfo = new DalamudStartInfo
                 {
-                    Language = Settings.GetLanguage(),
+                    Language = language,
                     PluginDirectory = ingamePluginPath,
                     DefaultPluginDirectory = defaultPluginPath,
                     ConfigurationPath = configPath
@@ -112,13 +113,19 @@ namespace XIVLauncher.Dalamud
                     StartInfo = { FileName = addonExe, WindowStyle = ProcessWindowStyle.Hidden, CreateNoWindow = true, Arguments = _gameProcess.Id.ToString() + " " + parameters, WorkingDirectory = addonDirectory }
                 };
 
+                // Update plugins
+                PluginUpdateMaster.Run(startInfo.PluginDirectory);
+
                 process.Start();
 
                 Serilog.Log.Information("Started dalamud!");
+
+                // Reset security protocol after updating
+                ServicePointManager.SecurityProtocol = SecurityProtocolType.SystemDefault;
             }
         }
 
-        public static bool CanRunDalamud()
+        public static bool CanRunDalamud(DirectoryInfo gamePath)
         {
             using (var client = new WebClient())
             {
@@ -126,7 +133,7 @@ namespace XIVLauncher.Dalamud
                 var remoteVersionInfo = JsonConvert.DeserializeObject<HooksVersionInfo>(versionInfoJson);
 
 
-                if (XivGame.GetLocalGameVer() != remoteVersionInfo.SupportedGameVer)
+                if (XivGame.GetLocalGameVer(gamePath) != remoteVersionInfo.SupportedGameVer)
                     return false;
             }
 
@@ -152,18 +159,19 @@ namespace XIVLauncher.Dalamud
                 dir.Delete(true); 
             }
 
-            Directory.CreateDirectory(ingamePluginPath);
-
             var ingamePluginDirectory = new DirectoryInfo(ingamePluginPath);
 
-            foreach (var file in ingamePluginDirectory.GetFiles())
+            if (ingamePluginDirectory.Exists)
             {
-                file.Delete(); 
-            }
+                foreach (var file in ingamePluginDirectory.GetFiles())
+                {
+                    file.Delete();
+                }
 
-            foreach (var dir in ingamePluginDirectory.GetDirectories())
-            {
-                dir.Delete(true); 
+                foreach (var dir in ingamePluginDirectory.GetDirectories())
+                {
+                    dir.Delete(true);
+                }
             }
 
             using (var client = new WebClient())
@@ -175,19 +183,6 @@ namespace XIVLauncher.Dalamud
 
                 client.DownloadFile(Remote + "latest.zip", downloadPath);
                 ZipFile.ExtractToDirectory(downloadPath, addonPath);
-
-                File.Delete(downloadPath);
-            }
-
-            using (var client = new WebClient())
-            {
-                var downloadPath = Path.Combine(ingamePluginPath, "plugins.zip");
-
-                if (File.Exists(downloadPath))
-                    File.Delete(downloadPath);
-
-                client.DownloadFile(Remote + "plugins.zip", downloadPath);
-                ZipFile.ExtractToDirectory(downloadPath, ingamePluginPath);
 
                 File.Delete(downloadPath);
             }

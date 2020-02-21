@@ -2,6 +2,7 @@
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using XIVLauncher.Settings;
 
 namespace XIVLauncher.Addon.Implementations
 {
@@ -9,7 +10,7 @@ namespace XIVLauncher.Addon.Implementations
     {
         string IAddon.Name => "Sync Character Settings";
 
-        void IAddon.Setup(Process game)
+        void IAddon.Setup(Process gameProcess, ILauncherSettingsV3 setting)
         {
             // Ignored
         }
@@ -19,7 +20,7 @@ namespace XIVLauncher.Addon.Implementations
             var myDocumentsPath = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
             var charaFolderPath = new DirectoryInfo(Path.Combine(myDocumentsPath, "My Games", "FINAL FANTASY XIV - A Realm Reborn"));
 
-            var orderedByChanges = charaFolderPath.GetDirectories().OrderByDescending(folder =>
+            var orderedByChanges = charaFolderPath.GetDirectories("FFXIV_CHR*").OrderByDescending(folder =>
             {
                 return File.GetLastWriteTime(Path.Combine(folder.FullName, "ADDON.DAT"));
             });
@@ -42,7 +43,9 @@ namespace XIVLauncher.Addon.Implementations
 
                 foreach (var file in files)
                 {
-                    File.Copy(file.FullName, Path.Combine(folder.FullName, file.Name), true);
+                    var destPath = Path.Combine(folder.FullName, file.Name);
+                    File.Copy(file.FullName, destPath, true);
+                    Serilog.Log.Information("   -> Copied {0} to {1}", file.FullName, destPath);
                 }
             }
         }

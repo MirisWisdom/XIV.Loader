@@ -1,15 +1,21 @@
 ﻿using System;
+using System.Diagnostics;
 using System.IO;
+using System.Net;
 using System.Threading;
 using System.Windows;
+using Config.Net;
 using Newtonsoft.Json;
 using Sentry;
 using Serilog;
 using Serilog.Events;
+using Squirrel;
 using XIVLauncher.Addon;
 using XIVLauncher.Addon.Implementations;
 using XIVLauncher.Dalamud;
 using XIVLauncher.Game;
+using XIVLauncher.Settings;
+using XIVLauncher.Settings.Parsers;
 using XIVLauncher.Windows;
 
 namespace XIVLauncher
@@ -19,11 +25,33 @@ namespace XIVLauncher
     /// </summary>
     public partial class App : Application
     {
+        private ILauncherSettingsV3 _globalSetting;
+
         public App()
         {
-            var culture = new System.Globalization.CultureInfo("de-DE");
-            Thread.CurrentThread.CurrentCulture = culture;
-            Thread.CurrentThread.CurrentUICulture = culture;
+            _globalSetting = new ConfigurationBuilder<ILauncherSettingsV3>()
+                .UseCommandLineArgs()
+                .UseJsonFile(GetConfigPath("launcher"))
+                .UseTypeParser(new DirectoryInfoParser())
+                .UseTypeParser(new AddonListParser())
+                .Build();
+
+#if !DEBUG
+            AppDomain.CurrentDomain.UnhandledException += EarlyInitExceptionHandler;
+#endif
+
+#if !XL_NOAUTOUPDATE
+            try
+            {
+                Updates.Run(Environment.GetEnvironmentVariable("XL_PRERELEASE") == "True").GetAwaiter().GetResult();
+            }
+            catch (Exception e)
+            {
+                MessageBox.Show(
+                    "XIVLauncher could not contact the update server. Please check your internet connection or try again.\n\n" + e,
+                    "XIVLauncher Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+#endif
 
             var release = $"xivlauncher-{Util.GetAssemblyVersion()}-{Util.GetGitHash()}";
 
@@ -54,6 +82,17 @@ namespace XIVLauncher
                 $"XIVLauncher started as {release}");
         }
 
+        private static void EarlyInitExceptionHandler(object sender, UnhandledExceptionEventArgs e)
+        {
+            MessageBox.Show(
+                "Error during early initialization. Please report this error.\n\n" + e.ExceptionObject,
+                "XIVLauncher Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            Log.CloseAndFlush();
+            Environment.Exit(0);
+        }
+
+        private static string GetConfigPath(string prefix) => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "XIVLauncher", $"{prefix}ConfigV3.json");
+
         private void App_OnStartup(object sender, StartupEventArgs e)
         {
             // Check if dark mode is enabled on windows, if yes, load the dark theme
@@ -70,9 +109,10 @@ namespace XIVLauncher
             Log.Information("Loaded UI theme resource.");
 
 #if !DEBUG
+            AppDomain.CurrentDomain.UnhandledException -= EarlyInitExceptionHandler;
             AppDomain.CurrentDomain.UnhandledException += (_, args) =>
             {
-                new ErrorWindow((Exception) args.ExceptionObject, "An unhandled exception occured.", "Unhandled")
+                new ErrorWindow((Exception) args.ExceptionObject, "An unhandled exception occured.", "Unhandled", _globalSetting)
                     .ShowDialog();
                 Log.CloseAndFlush();
                 Environment.Exit(0);
@@ -89,7 +129,7 @@ namespace XIVLauncher
 
             if (e.Args.Length > 0 && e.Args[0] == "--genIntegrity")
             {
-                var result = IntegrityCheck.RunIntegrityCheckAsync(Settings.GamePath, null).GetAwaiter().GetResult();
+                var result = IntegrityCheck.RunIntegrityCheckAsync(_globalSetting.GamePath, null).GetAwaiter().GetResult();
                 File.WriteAllText($"{result.GameVersion}.json", JsonConvert.SerializeObject(result));
 
                 MessageBox.Show($"Successfully hashed {result.Hashes.Count} files.");
@@ -111,7 +151,7 @@ namespace XIVLauncher
             
             Log.Information("Loading MainWindow for account '{0}'", accountName);
 
-            var mainWindow = new MainWindow(accountName);
+            var mainWindow = new MainWindow(_globalSetting, accountName);
         }
     }
 }

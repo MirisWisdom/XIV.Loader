@@ -4,6 +4,7 @@ using System.Windows;
 using Microsoft.Win32;
 using XIVLauncher.Addon;
 using XIVLauncher.Game;
+using XIVLauncher.Settings;
 
 namespace XIVLauncher.Windows
 {
@@ -12,13 +13,23 @@ namespace XIVLauncher.Windows
     /// </summary>
     public partial class FirstTimeSetup : Window
     {
-        public FirstTimeSetup()
+        private ILauncherSettingsV3 _setting;
+
+        public FirstTimeSetup(ILauncherSettingsV3 setting)
         {
             InitializeComponent();
+
+            _setting = setting;
 
             var detectedPath = Util.TryGamePaths();
 
             if (detectedPath != null) GamePathEntry.Text = detectedPath;
+
+#if XL_NOAUTOUPDATE
+            MessageBox.Show(
+                "You're running an unsupported version of XIVLauncher.\n\nThis can be unsafe and a danger to your SE account. If you have not gotten this unsupported version on purpose, please reinstall a clean version from https://github.com/goaaats/FFXIVQuickLauncher/releases.",
+                "XIVLauncher Problem", MessageBoxButton.OK, MessageBoxImage.Exclamation);
+#endif
         }
 
         private string FindAct()
@@ -72,13 +83,13 @@ namespace XIVLauncher.Windows
 
             if (SetupTabControl.SelectedIndex == 5)
             {
-                Settings.GamePath = new DirectoryInfo(GamePathEntry.Text);
-                Settings.SetDx11(Dx11RadioButton.IsChecked == true);
-                Settings.SetLanguage((ClientLanguage) LanguageComboBox.SelectedIndex);
-                Settings.SetInGameAddonEnabled(HooksCheckBox.IsChecked == true);
-                Settings.SteamIntegrationEnabled = SteamCheckBox.IsChecked == true;
+                _setting.GamePath = new DirectoryInfo(GamePathEntry.Text);
+                _setting.IsDx11 = Dx11RadioButton.IsChecked == true;
+                _setting.Language = (ClientLanguage) LanguageComboBox.SelectedIndex;
+                _setting.InGameAddonEnabled = HooksCheckBox.IsChecked == true;
+                _setting.SteamIntegrationEnabled = SteamCheckBox.IsChecked == true;
 
-                var addonList = new List<AddonEntry>
+                _setting.AddonList = new List<AddonEntry>
                 {
                     new AddonEntry
                     {
@@ -91,7 +102,7 @@ namespace XIVLauncher.Windows
                 {
                     var actPath = FindAct();
 
-                    addonList.Add(new AddonEntry
+                    _setting.AddonList.Add(new AddonEntry
                     {
                         IsEnabled = true,
                         Addon = new GenericAddon
@@ -101,9 +112,6 @@ namespace XIVLauncher.Windows
                     });
                 }
 
-                Settings.SetAddonList(addonList);
-
-                Settings.Save();
                 Close();
             }
 

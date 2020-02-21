@@ -1,19 +1,52 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using Newtonsoft.Json;
 
 namespace XIVLauncher.Cache
 {
     public class UniqueIdCache
     {
-        private const int DAYS_TO_TIMEOUT = 2;
+        private const int DAYS_TO_TIMEOUT = 1;
 
         private List<UniqueIdCacheEntry> _cache;
 
         public UniqueIdCache()
         {
-            _cache = Settings.UniqueIdCache;
+            Load();
         }
+
+        #region SaveLoad
+
+        private static readonly string ConfigPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "XIVLauncher", "uidCache.json");
+
+        public void Save()
+        {
+            File.WriteAllText(ConfigPath,  JsonConvert.SerializeObject(_cache, Formatting.Indented, new JsonSerializerSettings
+            {
+                TypeNameHandling = TypeNameHandling.Objects,
+                TypeNameAssemblyFormatHandling = TypeNameAssemblyFormatHandling.Simple
+            }));
+        }
+
+        public void Load()
+        {
+            if (!File.Exists(ConfigPath))
+            {
+                _cache = new List<UniqueIdCacheEntry>();
+                return;
+            }
+
+            _cache = JsonConvert.DeserializeObject<List<UniqueIdCacheEntry>>(File.ReadAllText(ConfigPath), new JsonSerializerSettings
+            {
+                TypeNameHandling = TypeNameHandling.Objects
+            });
+        }
+
+        public static void Reset() => File.Delete(ConfigPath);
+        
+        #endregion
 
         private void DeleteOldCaches()
         {
@@ -48,8 +81,7 @@ namespace XIVLauncher.Cache
                  ExpansionLevel = expansionLevel
              });
 
-             Settings.UniqueIdCache = _cache;
-             Settings.Save();
+             Save();
         }
     }
 }
